@@ -1,0 +1,85 @@
+A Translator from Modula-2 to Oberon
+N. Wirth  4.1.92
+Program Modula is a translation aid for converting Modula-2 programs to Oberon. We emphasize the word aid. It is evidently not possible to perform such a conversion fully automatically, because Oberon differs from Modula-2 not only in its syntax, but also in various concepts, such as the command. However, the converter will be a valuable aid to perform a first step from which a genuine conversion taking into account the conceptual differences may start. The inputs to the converter are assumed to be correct Modula-2 modules.
+The following translations are made by the converter:
+1. Definition and implementation modules are merged into a single Oberon module. Declaractions in the definition part are marked by an asterisk.
+2. Import lists of the form
+FROM M IMPORT x, y
+are converted to IMPORT M. Occurences of x and y are subsequently converted to M.x and M.y.
+3. Enumeration type declarations of the form
+Enum = (A, B)
+are translated to
+Enum = INTEGER;
+CONST A = 0; B = 1;
+4. Subrange declarations of the form [m .. n] and T[ m .. n] are converted to INTEGER;
+5. CARDINAL is translated into INTEGER.
+6. Set types of the form SET OF T are translated into SET.
+7. BITSET is translated into SET.
+8. Type transfer functions are suppressed, i.e. T(exp) becomes exp. This may lead to type errors in the resulting program.
+9. The symbols AND, NOT, and <> are converted to  &, ~, and # respectively.
+10. Octal numbers are converted into hexadecimal notation.
+The following example shows the various translations:
+DEFINITION MODULE M2X1;
+  VAR X: INTEGER;
+  PROCEDURE P(u, v: INTEGER);
+  PROCEDURE Q(w: INTEGER): REAL;
+END M2X1.
+IMPLEMENTATION MODULE M2X1;
+  IMPORT M0;
+  FROM M1 IMPORT a, b;
+  FROM M2 IMPORT Read, Write;
+  CONST N = 100;
+  TYPE Color = (red, green, blue);
+    Interval = [1 .. 10];
+    Index = CARDINAL [0 .. 99];
+    Hue = SET OF Color;
+  VAR i: CARDINAL; x: REAL; h: BITSET; ch: CHAR;
+  PROCEDURE P(u, v: INTEGER);
+  BEGIN Read(X); Write(u+v); Write(u-v)
+  END P;
+  PROCEDURE Q(w: INTEGER): REAL;
+    VAR a: REAL; b: CARDINAL;
+  BEGIN a := REAL(w); b := CARDINAL(w+1); RETURN w
+  END Q;
+  PROCEDURE R(c: Color);
+    VAR p, q, r: BOOLEAN;
+  BEGIN IF c <> green THEN p := p AND q; q := NOT r END
+  END R;
+BEGIN a := M0.x; X := 443B; X := 0FFFH; ch := 33C; ch := 377C; h := {}
+END M2X1.
+The resulting translation is:
+ MODULE M2X1;
+  VAR X*: INTEGER;
+  IMPORT M0, M1, M2;  
+CONST N = 100;
+  TYPE Color = INTEGER;
+  CONST red = 0; green = 1; blue = 2;
+    Interval = INTEGER;
+    Index = INTEGER;
+    Hue = SET;
+  VAR i: INTEGER; x: REAL; h: SET; ch: CHAR;
+  PROCEDURE P*(u, v: INTEGER);
+  BEGIN M2.Read(X); M2.Write(u+v); M2.Write(u-v)
+  END P;
+  PROCEDURE Q*(w: INTEGER): REAL;
+    VAR a: REAL; b: INTEGER;
+  BEGIN a := w; b := w+1; RETURN w
+  END Q;
+  PROCEDURE R(c: Color);
+    VAR p, q, r: BOOLEAN;
+  BEGIN IF c # green THEN p := p & q; q := ~ r END
+  END R;
+BEGIN M1.a := M0.x; X := 123H; X := 0FFFH; ch := 1BX; ch := 0FFX; h := {}
+END M2X1.
+The result is not necessarily a correct Oberon program. Even in the example above, the import list needs to be moved ahead of the variable declaration. In particular the Modula WITH statement is not handled and needs to be converted "by hand". Also, the converter does not perform type checks.
+The converter translates modules independently. This means that imported identifiers are not verified as being exports of the imported modules.
+How to use the converter
+Converting a main module:
+1. Open a viewer with the source text, say M2X0.MOD
+2. Mark the viewer and do Modula.Convert
+A new viewer is opened (at the position of the mark) with the result text named M2X0.Mod. (The text is not yet stored as a file).
+Converting a definition and implementation pair:
+1. Open a viewer with the definition part, say M2X1.DEF
+2. Open a viewer with the implementation part, say M2X1.MOD
+3. Mark the first viewer and do Modula.Convert
+4. Mark the second viewer and do Modula.ConvertA new viewer is opened with the result text named M2X1.Mod.
